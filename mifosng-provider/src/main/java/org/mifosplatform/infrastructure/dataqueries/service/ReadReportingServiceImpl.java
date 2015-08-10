@@ -248,7 +248,7 @@ public class ReadReportingServiceImpl implements ReadReportingService {
             outputType = outputTypeParam;
         }
 
-        if (!(outputType.equalsIgnoreCase("HTML") || outputType.equalsIgnoreCase("PDF") || outputType.equalsIgnoreCase("XLS") || outputType
+        if (!(outputType.equalsIgnoreCase("HTML") || outputType.equalsIgnoreCase("PDF") || outputType.equalsIgnoreCase("XLS") || outputType.equalsIgnoreCase("XLSX") || outputType
                 .equalsIgnoreCase("CSV"))) { throw new PlatformDataIntegrityException("error.msg.invalid.outputType",
                 "No matching Output Type: " + outputType); }
 
@@ -279,16 +279,22 @@ public class ReadReportingServiceImpl implements ReadReportingService {
                 PdfReportUtil.createPDF(masterReport, baos);
                 return Response.ok().entity(baos.toByteArray()).type("application/pdf").build();
             }
-
+            
             if ("XLS".equalsIgnoreCase(outputType)) {
                 ExcelReportUtil.createXLS(masterReport, baos);
                 return Response.ok().entity(baos.toByteArray()).type("application/vnd.ms-excel")
                         .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".xls").build();
             }
 
+            if ("XLSX".equalsIgnoreCase(outputType)) {
+                ExcelReportUtil.createXLSX(masterReport, baos);
+                return Response.ok().entity(baos.toByteArray()).type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".xlsx").build();
+            }
+
             if ("CSV".equalsIgnoreCase(outputType)) {
                 CSVReportUtil.createCSV(masterReport, baos, "UTF-8");
-                return Response.ok().entity(baos.toByteArray()).type("application/x-msdownload")
+                return Response.ok().entity(baos.toByteArray()).type("text/csv")
                         .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".csv").build();
             }
 
@@ -326,7 +332,7 @@ public class ReadReportingServiceImpl implements ReadReportingService {
             for (final ParameterDefinitionEntry paramDefEntry : paramsDefinition.getParameterDefinitions()) {
                 final String paramName = paramDefEntry.getName();
                 if (!((paramName.equals("tenantUrl")) || (paramName.equals("userhierarchy") || (paramName.equals("username")) || (paramName
-                        .equals("password"))))) {
+                        .equals("password") || (paramName.equals("userid")))))) {
                     logger.info("paramName:" + paramName);
                     final String pValue = queryParams.get(paramName);
                     if (StringUtils.isBlank(pValue)) { throw new PlatformDataIntegrityException("error.msg.reporting.error",
@@ -361,6 +367,10 @@ public class ReadReportingServiceImpl implements ReadReportingService {
             final String userhierarchy = currentUser.getOffice().getHierarchy();
             logger.info("db URL:" + tenantUrl + "      userhierarchy:" + userhierarchy);
             rptParamValues.put("userhierarchy", userhierarchy);
+			
+            final Long userid = currentUser.getId();
+            logger.info("db URL:" + tenantUrl + "      userid:" + userid);
+            rptParamValues.put("userid", userid);
 
             final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 
